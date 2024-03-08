@@ -5,12 +5,18 @@ import asyncio
 import json
 import os
 
-
+"""
+    Used for the music function to search youtube and download and then play a song
+    Can also put a song in a que if the player is currently running. 
+"""
 musicpath = 'C:/Users/MDiGG/PycharmProjects/Alfred/music.json'
 f = open(musicpath, "r")
 data = json.load(f)
 musicList = data['url']
 queList = []
+
+"""Used in the play function. Just uses a song file in local drive, usually Gangnam Style of course..."""
+playSong = "「残酷な天使のテーゼ」MUSIC VIDEO（HDver.）⧸Zankoku na Tenshi no Te-ze“The Cruel Angel's Thesis” [o6wtDPVkKqI].webm"
 
 
 class Music(commands.Cog):
@@ -49,7 +55,7 @@ class Music(commands.Cog):
                 voice = await voice_channel.connect()
             else:
                 voice = ctx.guild.voice_client
-            voice.play(discord.FFmpegPCMAudio("[AMV] SUPER RISER!.webm"),
+            voice.play(discord.FFmpegPCMAudio(playSong),
                        after=lambda e: print('done', e))
         else:
             await ctx.send("Enter a voice channel bro...")
@@ -86,12 +92,12 @@ class Music(commands.Cog):
             if not ctx.guild.voice_client:
                 voice_channel = ctx.author.voice.channel
                 voice = await voice_channel.connect()
-                songs = []
                 for i in os.listdir("C:\\Users\\MDiGG\\PycharmProjects\\Alfred"):
                     if i.startswith(title):
-                        songs.append(i)
-                voice.play(discord.FFmpegPCMAudio(songs[0]),#f"{title}.webm"
+                        queList.append(i)
+                voice.play(discord.FFmpegPCMAudio(queList[0]),
                            after=lambda e: check_que())
+                queList.pop(0)
             else:
                 if ctx.voice_client.is_playing():
                     for i in os.listdir("C:\\Users\\MDiGG\\PycharmProjects\\Alfred"):
@@ -101,14 +107,15 @@ class Music(commands.Cog):
                     await ctx.send(f"Added {title} to the que, sir.")
                 else:
                     voice = ctx.guild.voice_client
-                    voice.play(discord.FFmpegPCMAudio(f"{title}.webm"),
+                    voice.play(discord.FFmpegPCMAudio(queList[0]),
                             after=lambda e: check_que())
+                    queList.pop(0)
         else:
             await ctx.send("Please enter a voice chat first, master.")
 
         def check_que():
             if queList:
-                voice.play(discord.FFmpegPCMAudio(f"{queList[0]}.webm"),
+                voice.play(discord.FFmpegPCMAudio(f"{queList[0]}"),
                            after=lambda e: check_que())
                 queList.pop(0)
             else:
