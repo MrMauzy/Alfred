@@ -1,3 +1,5 @@
+import random
+
 import discord
 from discord.ext import commands
 from config import path #enter your file directory here
@@ -14,6 +16,7 @@ musicpath = f'{path}/music.json'
 f = open(musicpath, "r")
 data = json.load(f)
 musicList = data['url']
+random.shuffle(musicList)
 queList = []
 ql = len(musicList) - 1
 
@@ -24,6 +27,20 @@ playSong = "PSY - GANGNAM STYLE.webm"
 class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    @commands.command()
+    async def pause(self, ctx):
+        voice = ctx.guild.voice_client
+        if voice.is_playing():
+            voice.pause()
+            await ctx.send("Music is Paused...")
+
+    @commands.command()
+    async def resume(self, ctx):
+        voice = ctx.guild.voice_client
+        if voice.is_paused():
+            voice.resume()
+            await ctx.send("Music is Resumed...")
 
     """#skip command: skips to the next song when using the que list"""
     @commands.command(pass_context=True)
