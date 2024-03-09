@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from config import path #enter your file directory here
 import yt_dlp
 import asyncio
 import json
@@ -9,7 +10,7 @@ import os
     Used for the music function to search youtube and download and then play a song
     Can also put a song in a que if the player is currently running. 
 """
-musicpath = 'C:/Users/MDiGG/PycharmProjects/Alfred/music.json'
+musicpath = f'{path}/music.json'
 f = open(musicpath, "r")
 data = json.load(f)
 musicList = data['url']
@@ -17,7 +18,7 @@ queList = []
 ql = len(musicList) - 1
 
 """Used in the play function. Just uses a song file in local drive, usually Gangnam Style of course..."""
-playSong = "Frank Zappa - King Kong (LP version) [v1ZapVqxcug].webm"
+playSong = "PSY - GANGNAM STYLE.webm"
 
 
 class Music(commands.Cog):
@@ -25,24 +26,27 @@ class Music(commands.Cog):
         self.bot = bot
 
     """#skip command: skips to the next song when using the que list"""
-    @commands.command()
-    async def skip(self, ctx):
+    @commands.command(pass_context=True)
+    async def skip(self, ctx, num: int = 1):
         voice = ctx.guild.voice_client
+        loop = asyncio.get_event_loop()
         if voice.is_playing():
             voice.pause()
             if queList:
                 voice.play(discord.FFmpegPCMAudio(queList[0]),
-                           after=lambda e: self.check_que(ctx))
+                           after=lambda e: asyncio.run_coroutine_threadsafe(self.check_que(ctx), loop))
             else:
                 global ql
+                if num > 1:
+                    ql -= (num - 1)
                 voice.play(discord.FFmpegPCMAudio(musicList[ql]),
-                           after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), self.bot.loop))
+                           after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), loop))
                 ql -= 1
 
     @commands.command(pass_context=True)
     async def que(self, ctx):
-        #ql = len(musicList) - 1
         global ql
+        loop = asyncio.get_event_loop()
         if ctx.author.voice.channel:
             if not ctx.guild.voice_client:
                 voice_channel = ctx.author.voice.channel
@@ -51,7 +55,7 @@ class Music(commands.Cog):
                 voice = ctx.guild.voice_client
             if ql != -1:
                 voice.play(discord.FFmpegPCMAudio(musicList[ql]),
-                    after=lambda e: self.play_next(ctx))
+                    after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), loop))
                 ql -= 1
             else:
                 await ctx.send("Que over... Come again...")
@@ -60,14 +64,17 @@ class Music(commands.Cog):
 
     async def play_next(self, ctx):
         global ql
+        loop = asyncio.get_event_loop()
         voice = ctx.guild.voice_client
+        if queList:
+            await self.check_que(ctx)
         if ql != -1:
             voice.play(discord.FFmpegPCMAudio(musicList[ql]),
-                       after=lambda e: self.play_next(ctx))
+                       after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), loop))
             ql -= 1
 
     @commands.command(pass_context=True)
-    async def play(self, ctx):
+    async def music(self, ctx):
         if ctx.author.voice.channel:
             if not ctx.guild.voice_client:
                 voice_channel = ctx.author.voice.channel
@@ -80,7 +87,7 @@ class Music(commands.Cog):
             await ctx.send("Enter a voice channel bro...")
 
     @commands.command(pass_context=True)
-    async def music(self, ctx, *, searchword):
+    async def play(self, ctx, *, searchword):
         ydl_optics = {}
         voice = ctx.voice_client
         if searchword[0:4] == "http" or searchword[0:3] == "www":
@@ -111,15 +118,15 @@ class Music(commands.Cog):
             if not ctx.guild.voice_client:
                 voice_channel = ctx.author.voice.channel
                 voice = await voice_channel.connect()
-                for i in os.listdir("C:\\Users\\MDiGG\\PycharmProjects\\Alfred"):
+                for i in os.listdir(path):
                     if i.startswith(title):
                         queList.append(i)
                 voice.play(discord.FFmpegPCMAudio(queList[0]),
-                           after=lambda e: self.check_que(ctx))
+                           after=lambda e: asyncio.run_coroutine_threadsafe(self.check_que(ctx), loop))
                 queList.pop(0)
             else:
                 if ctx.voice_client.is_playing():
-                    for i in os.listdir("C:\\Users\\MDiGG\\PycharmProjects\\Alfred"):
+                    for i in os.listdir(path):
                         if i.startswith(title):
                             queList.append(i)
                     #ueList.append(title)
@@ -127,16 +134,17 @@ class Music(commands.Cog):
                 else:
                     voice = ctx.guild.voice_client
                     voice.play(discord.FFmpegPCMAudio(queList[0]),
-                            after=lambda e: self.check_que(ctx))
+                            after=lambda e: asyncio.run_coroutine_threadsafe(self.check_que(ctx), loop))
                     queList.pop(0)
         else:
             await ctx.send("Please enter a voice chat first, master.")
 
     async def check_que(self, ctx):
+        loop = asyncio.get_event_loop()
         if queList:
             voice = ctx.guild.voice_client
             voice.play(discord.FFmpegPCMAudio(f"{queList[0]}"),
-                       after=lambda e: self.check_que(ctx))
+                       after=lambda e: asyncio.run_coroutine_threadsafe(self.check_que(ctx), loop))
             queList.pop(0)
         else:
             await ctx.send("No more harmonious sounds to play.")
