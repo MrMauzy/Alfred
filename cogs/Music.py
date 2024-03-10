@@ -57,6 +57,7 @@ class Music(commands.Cog):
                 global ql
                 if num > 1:
                     ql -= (num - 1)
+                await self.listSong(ctx)
                 voice.play(discord.FFmpegPCMAudio(musicList[ql]),
                            after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), loop))
                 ql -= 1
@@ -73,6 +74,7 @@ class Music(commands.Cog):
             else:
                 voice = ctx.guild.voice_client
             if ql != -1:
+                await self.listSong(ctx)
                 voice.play(discord.FFmpegPCMAudio(musicList[ql]),
                     after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), loop))
                 ql -= 1
@@ -89,6 +91,7 @@ class Music(commands.Cog):
         if queList:
             await self.check_que(ctx)
         if ql != -1:
+            await self.listSong(ctx)
             voice.play(discord.FFmpegPCMAudio(musicList[ql]),
                        after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), loop))
             ql -= 1
@@ -184,6 +187,11 @@ class Music(commands.Cog):
         await self.music(ctx, 2)
         await ctx.send('Commander Cody, the time has come. Execute Order Sixty-Six.')
         await ctx.send(f'Start with {ctx.author.mention}')
+
+    async def listSong(self, ctx):
+        response = discord.Embed(color=0x595959)
+        response.add_field(name="Now playing ", value=f"{musicList[ql][44:-19]}")
+        await ctx.channel.send(None, embed=response)
 
 
 async def setup(bot):
