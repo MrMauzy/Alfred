@@ -22,6 +22,7 @@ ql = len(musicList) - 1
 
 """Used in the play function. Just uses a song file in local drive, usually Gangnam Style of course..."""
 playSong = "PSY - GANGNAM STYLE.webm"
+order66music = 'Imperial March.webm'
 
 
 class Music(commands.Cog):
@@ -60,6 +61,7 @@ class Music(commands.Cog):
                            after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), loop))
                 ql -= 1
 
+    """#que is used with a json file with already downloaded song in the Music Directory"""
     @commands.command(pass_context=True)
     async def que(self, ctx):
         global ql
@@ -79,6 +81,7 @@ class Music(commands.Cog):
         else:
             await ctx.send("Enter a voice channel bro...")
 
+    """#play next is used when using the que function to play the next song"""
     async def play_next(self, ctx):
         global ql
         loop = asyncio.get_event_loop()
@@ -90,19 +93,27 @@ class Music(commands.Cog):
                        after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), loop))
             ql -= 1
 
+    """#music is used to play a special song that all your friends love to hear"""
     @commands.command(pass_context=True)
-    async def music(self, ctx):
+    async def music(self, ctx, id: int = 1):
         if ctx.author.voice.channel:
             if not ctx.guild.voice_client:
                 voice_channel = ctx.author.voice.channel
                 voice = await voice_channel.connect()
             else:
                 voice = ctx.guild.voice_client
-            voice.play(discord.FFmpegPCMAudio(playSong),
-                       after=lambda e: print('done', e))
+            if id == 1:
+                voice.play(discord.FFmpegPCMAudio(playSong),
+                           after=lambda e: print('done', e))
+            elif voice.is_playing():
+                await ctx.send("Music is already on...")
+            elif id == 2:
+                voice.play(discord.FFmpegPCMAudio(order66music),
+                           after=lambda e: print('done', e))
         else:
-            await ctx.send("Enter a voice channel bro...")
+            await ctx.send("Enter a voice channel master...")
 
+    """#play can be used to input a youtube link or search words that will pull and play a youtube song to play"""
     @commands.command(pass_context=True)
     async def play(self, ctx, *, searchword):
         ydl_optics = {}
@@ -146,8 +157,7 @@ class Music(commands.Cog):
                     for i in os.listdir(path):
                         if i.startswith(title):
                             queList.append(i)
-                    #ueList.append(title)
-                    await ctx.send(f"Added {title} to the que, sir.")
+                    await ctx.send(f"Added {searchword} to the que, sir.")
                 else:
                     voice = ctx.guild.voice_client
                     voice.play(discord.FFmpegPCMAudio(queList[0]),
@@ -156,6 +166,7 @@ class Music(commands.Cog):
         else:
             await ctx.send("Please enter a voice chat first, master.")
 
+    """#checkque is used for the play function to play the next song in the que"""
     async def check_que(self, ctx):
         loop = asyncio.get_event_loop()
         if queList:
@@ -165,6 +176,14 @@ class Music(commands.Cog):
             queList.pop(0)
         else:
             await ctx.send("No more harmonious sounds to play.")
+
+    """#order66 a fun Star Wars themed command to initiate order 66"""
+    @commands.command()
+    async def order66(self, ctx):
+        await self.pause(ctx)
+        await self.music(ctx, 2)
+        await ctx.send('Commander Cody, the time has come. Execute Order Sixty-Six.')
+        await ctx.send(f'Start with {ctx.author.mention}')
 
 
 async def setup(bot):

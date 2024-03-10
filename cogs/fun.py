@@ -26,11 +26,6 @@ class Fun(commands.Cog):
         quotes = random.choice(q1)
         await ctx.send(f'{quotes["text"]} -- {quotes["author"]}')
 
-    @commands.command()
-    async def order66(self, ctx):
-        await ctx.send('Commander Cody, the time has come. Execute Order Sixty-Six.')
-        await ctx.send(f'Start with {ctx.author.mention}')
-
 
 async def setup(bot):
     await bot.add_cog(Fun(bot))
