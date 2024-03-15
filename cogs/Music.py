@@ -21,7 +21,7 @@ queList = []
 ql = len(musicList) - 1
 
 """Used in the play function. Just uses a song file in local drive, usually Gangnam Style of course..."""
-playSong = "PSY - GANGNAM STYLE.webm"
+playSong = "Chocolate Rain Original Song by Tay Zonday [EwTZ2xpQwpA].webm"
 order66music = 'Imperial March.webm'
 
 
@@ -179,6 +179,17 @@ class Music(commands.Cog):
             queList.pop(0)
         else:
             await ctx.send("No more harmonious sounds to play.")
+
+    @commands.command()
+    async def playlist(self, ctx):
+        response = discord.Embed(color=0x595959)
+        playtemp = musicList[ql-3:ql+1]
+        playrev = playtemp[::-1]
+        playlist = []
+        for i in range(3):
+            playlist.append(playrev[i][44:-19])
+            response.add_field(name=f"{i+1}", value=f"{playlist[i]} \n", inline=False)
+        await ctx.channel.send(None, embed=response)
 
     """#order66 a fun Star Wars themed command to initiate order 66"""
     @commands.command()
