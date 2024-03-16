@@ -186,9 +186,14 @@ class Music(commands.Cog):
         playtemp = musicList[ql-3:ql+1]
         playrev = playtemp[::-1]
         playlist = []
-        for i in range(3):
-            playlist.append(playrev[i][44:-19])
-            response.add_field(name=f"{i+1}", value=f"{playlist[i]} \n", inline=False)
+        if queList:
+            playlist = queList
+            for i in range(len(playlist)):
+                response.add_field(name="", value=f"{playlist[i]} \n", inline=False)
+        else:
+            for i in range(3):
+                playlist.append(playrev[i][44:-19])
+                response.add_field(name="", value=f"{playlist[i]} \n", inline=False)
         await ctx.channel.send(None, embed=response)
 
     """#order66 a fun Star Wars themed command to initiate order 66"""
