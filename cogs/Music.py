@@ -173,13 +173,16 @@ class Music(commands.Cog):
     """#checkque is used for the play function to play the next song in the que"""
     async def check_que(self, ctx):
         loop = asyncio.get_event_loop()
+        response = discord.Embed(color=0x595959)
         if queList:
             voice = ctx.guild.voice_client
+            response.add_field(name="Now Playing:", value=f"{queList[0]} \n", inline=False)
+            await ctx.channel.send(None, embed=response)
             voice.play(discord.FFmpegPCMAudio(f"{queList[0]}"),
                        after=lambda e: asyncio.run_coroutine_threadsafe(self.check_que(ctx), loop))
             queList.pop(0)
         else:
-            await ctx.send("No more harmonious sounds to play.")
+            await ctx.send("playlist is now empty...")
 
     @commands.command()
     async def playlist(self, ctx):
