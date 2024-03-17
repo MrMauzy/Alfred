@@ -53,6 +53,7 @@ class Music(commands.Cog):
             if queList:
                 voice.play(discord.FFmpegPCMAudio(queList[0]),
                            after=lambda e: asyncio.run_coroutine_threadsafe(self.check_que(ctx), loop))
+                queList.pop(0)
             else:
                 global ql
                 if num > 1:
