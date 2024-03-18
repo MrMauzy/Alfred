@@ -50,6 +50,7 @@ class Music(commands.Cog):
         loop = asyncio.get_event_loop()
         if voice.is_playing():
             voice.pause()
+            await self.listSong(ctx)
             if queList:
                 voice.play(discord.FFmpegPCMAudio(queList[0]),
                            after=lambda e: asyncio.run_coroutine_threadsafe(self.check_que(ctx), loop))
@@ -58,7 +59,6 @@ class Music(commands.Cog):
                 global ql
                 if num > 1:
                     ql -= (num - 1)
-                await self.listSong(ctx)
                 voice.play(discord.FFmpegPCMAudio(musicList[ql]),
                            after=lambda e: asyncio.run_coroutine_threadsafe(self.play_next(ctx), loop))
                 ql -= 1
@@ -173,13 +173,11 @@ class Music(commands.Cog):
     """#checkque is used for the play function to play the next song in the que"""
     async def check_que(self, ctx):
         loop = asyncio.get_event_loop()
-        response = discord.Embed(color=0x595959)
         if queList:
             voice = ctx.guild.voice_client
-            response.add_field(name="Now Playing:", value=f"{queList[0]} \n", inline=False)
-            await ctx.channel.send(None, embed=response)
             voice.play(discord.FFmpegPCMAudio(f"{queList[0]}"),
                        after=lambda e: asyncio.run_coroutine_threadsafe(self.check_que(ctx), loop))
+            await self.listSong(ctx)
             queList.pop(0)
         else:
             await ctx.send("playlist is now empty...")
@@ -210,7 +208,10 @@ class Music(commands.Cog):
 
     async def listSong(self, ctx):
         response = discord.Embed(color=0x595959)
-        response.add_field(name="Now playing ", value=f"{musicList[ql][44:-19]}")
+        if queList:
+            response.add_field(name="Now Playing: ", value=f"{queList[0][:-19]} \n", inline=False)
+        else:
+            response.add_field(name="Now playing: ", value=f"{musicList[ql][44:-19]}")
         await ctx.channel.send(None, embed=response)
 
 
