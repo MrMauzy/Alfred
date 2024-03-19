@@ -21,7 +21,7 @@ queList = []
 ql = len(musicList) - 1
 
 """Used in the play function. Just uses a song file in local drive, usually Gangnam Style of course..."""
-playSong = "Chocolate Rain Original Song by Tay Zonday [EwTZ2xpQwpA].webm"
+playSong = "Metallica： Nothing Else Matters (Official Music Video) [tAGnKpE4NCI].webm"
 order66music = 'Imperial March.webm'
 
 
@@ -161,7 +161,7 @@ class Music(commands.Cog):
                     for i in os.listdir(path):
                         if i.startswith(title):
                             queList.append(i)
-                    await ctx.send(f"Added {searchword} to the que, sir.")
+                    await ctx.send(f"Added {title} to the que, sir.")
                 else:
                     voice = ctx.guild.voice_client
                     voice.play(discord.FFmpegPCMAudio(queList[0]),
@@ -182,6 +182,7 @@ class Music(commands.Cog):
         else:
             await ctx.send("playlist is now empty...")
 
+    """#playlist will show the next songs in the que for the play and que function"""
     @commands.command()
     async def playlist(self, ctx):
         response = discord.Embed(color=0x595959)
@@ -206,6 +207,7 @@ class Music(commands.Cog):
         await ctx.send('Commander Cody, the time has come. Execute Order Sixty-Six.')
         await ctx.send(f'Start with {ctx.author.mention}')
 
+    """#listSong shows what is currently playing in chat once a song starts"""
     async def listSong(self, ctx):
         response = discord.Embed(color=0x595959)
         if queList:
