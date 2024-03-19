@@ -9,6 +9,8 @@ from filefunctions import *
 
 intents = discord.Intents.all()
 intents.message_content = True
+CreateSongList()
+
 
 class MyBot(commands.Bot):
     def __init__(self):
@@ -20,7 +22,6 @@ class MyBot(commands.Bot):
         print(prfx + " Bot ID " + Fore.YELLOW + f"{bot.user.id}")
         print(prfx + " Discord Version " + Fore.YELLOW + discord.__version__)
         print(prfx + " Python Version " + Fore.YELLOW + str(platform.python_version()))
-        CreateSongList()
         await self.wait_until_ready()
 
     async def setup_hook(self):
