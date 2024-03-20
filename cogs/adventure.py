@@ -1,7 +1,9 @@
 import discord
 from discord.ext import commands
-import enum, random, sys
+import enum, random
+import sys
 from copy import deepcopy
+import json
 
 
 class RPG(commands.Cog):
@@ -45,17 +47,31 @@ class Character(Actor):
         super().__init__(name, hp, max_hp, attack, defense, xp, gold)
         self.mana = mana
         self.level = level
-
         self.inventory = inventory
-
         self.mode = mode
-        self.battling = battling
+
+        if battling != None:
+            enemy_class = str_to_class(battling["enemy"])
+            self.battling = enemy_class()
+            self.battling.rehydrate(**battling)
+        else:
+            self.battling = None
+
         self.user_id = user_id
+
+    """saves the character information into a json file"""
+    def save_to_db(self):
+        character_info = deepcopy(vars(self))
+        if self.battling != None:
+            character_info["battling"] = deepcopy(vars(self.battling))
+        with open('charinfo.json', 'w') as f:
+            json.dump(character_info, f, indent=4)
 
 
 class Enemy(Actor):
     def __init__(self, name, max_hp, attack, defense, xp, gold):
         super().__init__(name, max_hp, max_hp, attack, defense, xp, gold)
+        self.enemy = self.__class__.__name__
 
 
 class LadyBug(Enemy):
