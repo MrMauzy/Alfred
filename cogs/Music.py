@@ -189,6 +189,7 @@ class Music(commands.Cog):
         playtemp = musicList[ql-3:ql+1]
         playrev = playtemp[::-1]
         playlist = []
+        response.add_field(name="Next Up Is...", value=f"", inline=False)
         if queList:
             playlist = queList
             for i in range(len(playlist)):
