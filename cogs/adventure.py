@@ -3,7 +3,16 @@ from discord.ext import commands
 import enum, random
 import sys
 from copy import deepcopy
+from config import path
 import json
+
+playerpath = musicpath = f'{path}/charinfo.json'
+f = open(playerpath, "r")
+characterinfo = json.load(f)
+
+"""converts to a class depending on the string provided"""
+def str_to_class(classname):
+    return getattr(sys.modules[__name__], classname)
 
 
 class RPG(commands.Cog):
@@ -59,6 +68,75 @@ class Character(Actor):
 
         self.user_id = user_id
 
+    """picks a random enemy based on your character level"""
+    def hunt(self):
+        while True:
+            enemy_type = random.choice(Enemy.__subclasses__())
+
+            if enemy_type.min_level <= self.level:
+                break
+        enemy = enemy_type()
+        self.mode = GameMode.BATTLE
+        self.battling = enemy
+        self.save_to_db()
+        return enemy
+
+    """returns the winner based on the fight!"""
+    def fight(self, enemy):
+        winner = super().fight(enemy)
+        self.save_to_db()
+        return winner
+
+    """allows you to try and run from a fight"""
+    def flee(self, enemy):
+        if random.randint(0, 1+self.defense):
+            damage = 0
+        else:
+            damage = enemy.attack/2
+            self.hp -= damage
+
+        self.battling = None
+        self.mode = GameMode.ADVENTURE
+        self.save_to_db()
+        return damage, self.hp <= 0
+
+    """function after an enemy is defeated to gain xp"""
+    def defeat(self, enemy):
+        if self.level < self.level_cap:
+            self.xp += enemy.xp
+        self.gold += enemy.gold
+        self.battling = None
+        self.mode = GameMode.ADVENTURE
+        ready, _ = self.level_up_check()
+        self.save_to_db()
+
+        return enemy.xp, enemy.gold, ready
+
+    """levels up your character based on xp gained"""
+    def level_up_check(self):
+        if self.level == self.level_cap:
+            return False, 0
+        xp_needed = self.level*10
+        return self.xp >= xp_needed, xp_needed-self.xp
+
+    """give you levels based on xp gained"""
+    def level_up(self, stat):
+        ready, _ = self.level_up_check()
+        if not ready:
+            return False, self.level
+        self.level += 1
+        setattr(self, stat, getattr(self, stat)+1)
+        self.hp = self.max_hp
+        self.save_to_db()
+
+        return True, self.level
+
+    """when death occurs"""
+    def dead(self, player_id):
+        if self.user_id in characterinfo["characters"].keys():
+            characterinfo.pop(self.user_id)
+
+
     """saves the character information into a json file"""
     def save_to_db(self):
         character_info = deepcopy(vars(self))
@@ -72,6 +150,15 @@ class Enemy(Actor):
     def __init__(self, name, max_hp, attack, defense, xp, gold):
         super().__init__(name, max_hp, max_hp, attack, defense, xp, gold)
         self.enemy = self.__class__.__name__
+
+    def rehydrate(self, name, hp, max_hp, attack, defense, xp, gold, enemy):
+        self.name = name
+        self.hp = hp
+        self.max_hp = max_hp
+        self. attack = attack
+        self.defense = defense
+        self.xp = xp
+        self.gold = gold
 
 
 class LadyBug(Enemy):
