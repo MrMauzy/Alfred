@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
-import enum, random
+import enum
+import random
 import sys
 from copy import deepcopy
 from config import path
@@ -8,7 +9,7 @@ import json
 
 playerpath = musicpath = f'{path}/charinfo.json'
 f = open(playerpath, "r")
-characterinfo = json.load(f)
+db = {"characters": json.load(f)}
 
 """converts to a class depending on the string provided"""
 def str_to_class(classname):
@@ -18,6 +19,38 @@ def str_to_class(classname):
 class RPG(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+
+    """-------------------Bot Commands-------------------"""
+
+    """the create a character function"""
+    @commands.command(name="create", help="Create a character")
+    async def create(self, ctx, name=None):
+        user_id = ctx.author.id
+
+        if not name:
+            name = ctx.author.name
+
+
+        if user_id not in db["characters"] or not db["characters"][user_id]:
+            character = Character(**{
+                "name": name,
+                "hp": 13,
+                "max_hp": 13,
+                "attack": 2,
+                "defense": 1,
+                "mana": 0,
+                "level": 1,
+                "xp": 0,
+                "gold": 0,
+                "inventory": [],
+                "mode": GameMode.ADVENTURE,
+                "battling": None,
+                "user_id": user_id
+            })
+            character.save_to_db()
+            await ctx.send(f"New level 1 character created, {name}. Welcome.")
+        else:
+            await ctx.send("You already have a character.")
 
 
 class GameMode(enum.IntEnum):
@@ -133,17 +166,19 @@ class Character(Actor):
 
     """when death occurs"""
     def dead(self, player_id):
-        if self.user_id in characterinfo["characters"].keys():
-            characterinfo.pop(self.user_id)
+        if self.user_id in db["characters"].keys():
+            db.pop(self.user_id)
 
 
     """saves the character information into a json file"""
     def save_to_db(self):
-        character_info = deepcopy(vars(self))
+        characterinfo = deepcopy(vars(self))
         if self.battling != None:
-            character_info["battling"] = deepcopy(vars(self.battling))
+            characterinfo["battling"] = deepcopy(vars(self.battling))
+
+        db["characters"][self.user_id] = characterinfo
         with open('charinfo.json', 'w') as f:
-            json.dump(character_info, f, indent=4)
+            json.dump(characterinfo, f, indent=4)
 
 
 class Enemy(Actor):
