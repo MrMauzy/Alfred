@@ -1,3 +1,5 @@
+import os
+
 import discord
 from discord.ext import commands
 import enum
@@ -10,11 +12,11 @@ import json
 playerpath = f'{path}/charinfo.json'
 f = open(playerpath, "r")
 db = json.load(f)
-
+f.close()
 
 def load_character(user_id):
     #character = db["characters"]["user_id"] == user_id
-    return Character(**db[str(user_id)])
+    return Character(**db[user_id])
 
 
 def status_embed(ctx, character):
@@ -80,7 +82,6 @@ class RPG(commands.Cog):
             await ctx.send(f"and.. they still have {character.hp} health left.")
             if level_up_check:
                 await ctx.send(f"{character.name} is ready to level up to level {character.level+1}. Type '.levelup' to continue.")
-            GameMode(1)
             return
 
         damage, killed = enemy.fight(character)
@@ -108,7 +109,6 @@ class RPG(commands.Cog):
             await ctx.send("Watch out, you are already in a battle!!!")
             return
         enemy = character.hunt()
-        GameMode(2)
         await ctx.send(f"You have found a wild {enemy.name}. Do you '.fight' or '.flee'??")
 
     """shows the players status"""
@@ -169,6 +169,7 @@ class Actor:
         self.gold = gold
 
     def fight(self, other):
+        print(db)
         defense = min(other.defense, 19) #cap defense value
         chance_to_hit = random.randint(0, 20-defense)
         if chance_to_hit:
@@ -269,11 +270,14 @@ class Character(Actor):
 
     """saves the character information into a json file"""
     def save_to_db(self):
+        global db
         characterinfo = deepcopy(vars(self))
         if self.battling != None:
             characterinfo["battling"] = deepcopy(vars(self.battling))
-
+        if self.user_id in db.keys():
+            del db[self.user_id]
         db[self.user_id] = characterinfo
+        os.remove('charinfo.json')
         with open('charinfo.json', 'w') as f:
             json.dump(db, f, indent=4)
 
