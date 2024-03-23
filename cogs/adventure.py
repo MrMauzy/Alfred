@@ -7,12 +7,38 @@ from copy import deepcopy
 from config import path
 import json
 
-playerpath = musicpath = f'{path}/charinfo.json'
+playerpath = f'{path}/charinfo.json'
 f = open(playerpath, "r")
-db = {"characters": json.load(f)}
+db = json.load(f)
 
-"""converts to a class depending on the string provided"""
+
+def load_character(user_id):
+    #character = db["characters"]["user_id"] == user_id
+    return Character(**db["characters"][str(user_id)])
+
+
+def status_embed(ctx, character):
+    MODE_COLOR = {
+        GameMode.BATTLE: 0xDC143C,
+        GameMode.ADVENTURE: 0x005EB8,
+    }
+    if character.mode == GameMode.BATTLE:
+        mode_text = f"Currently in a battle with the deadly {character.battling.name}"
+    elif character.mode == GameMode.ADVENTURE:
+        mode_text = f"On an adventure..."
+
+    embed = discord.Embed(title=f"{character.name} status", description=mode_text, color=MODE_COLOR[character.mode])
+    embed.set_author(name=ctx.author.name, icon_url=str(ctx.author.display_avatar))
+
+    _, xp_needed = character.level_up_check()
+    embed.add_field(name="Stats", value=f"""
+        **HP:**     {character.hp}/{character.max_hp}
+        """, inline=True)
+    return embed
+
+
 def str_to_class(classname):
+    """converts to a class depending on the string provided"""
     return getattr(sys.modules[__name__], classname)
 
 
@@ -22,6 +48,16 @@ class RPG(commands.Cog):
 
     """-------------------Bot Commands-------------------"""
 
+    """shows the players status"""
+    @commands.command(name="status", help="Get information about your character.")
+    async def status(self, ctx):
+        character = load_character(ctx.author.id)
+
+        embed = status_embed(ctx, character)
+        await ctx.channel.send(None, embed=embed)
+
+
+
     """the create a character function"""
     @commands.command(name="create", help="Create a character")
     async def create(self, ctx, name=None):
@@ -30,8 +66,7 @@ class RPG(commands.Cog):
         if not name:
             name = ctx.author.name
 
-
-        if user_id not in db["characters"] or not db["characters"][user_id]:
+        if user_id not in db:
             character = Character(**{
                 "name": name,
                 "hp": 13,
@@ -169,16 +204,15 @@ class Character(Actor):
         if self.user_id in db["characters"].keys():
             db.pop(self.user_id)
 
-
     """saves the character information into a json file"""
     def save_to_db(self):
         characterinfo = deepcopy(vars(self))
         if self.battling != None:
             characterinfo["battling"] = deepcopy(vars(self.battling))
 
-        db["characters"][self.user_id] = characterinfo
+        db[self.user_id] = characterinfo
         with open('charinfo.json', 'w') as f:
-            json.dump(characterinfo, f, indent=4)
+            json.dump(db, f, indent=4)
 
 
 class Enemy(Actor):
