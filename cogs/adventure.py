@@ -14,7 +14,7 @@ db = json.load(f)
 
 def load_character(user_id):
     #character = db["characters"]["user_id"] == user_id
-    return Character(**db["characters"][str(user_id)])
+    return Character(**db[str(user_id)])
 
 
 def status_embed(ctx, character):
@@ -33,7 +33,17 @@ def status_embed(ctx, character):
     _, xp_needed = character.level_up_check()
     embed.add_field(name="Stats", value=f"""
         **HP:**     {character.hp}/{character.max_hp}
+        **ATTACK**  {character.attack}
+        **DEFENSE** {character.defense}
+        **MANA**    {character.mana}
+        **LEVEL**   {character.level}
+        **XP**      {character.xp}/ {character.xp+xp_needed}
         """, inline=True)
+
+    inventory_text = f"Gold: {character.gold}\n"
+    if character.inventory:
+        inventory_text += "\n".join(character.inventory)
+    embed.add_field(name="Inventory", value=inventory_text, inline=True)
     return embed
 
 
@@ -47,6 +57,59 @@ class RPG(commands.Cog):
         self.bot = bot
 
     """-------------------Bot Commands-------------------"""
+
+
+    @commands.command(name="fight", help="Fight a monster")
+    async def fight(self, ctx):
+        character = load_character(ctx.author.id)
+
+        if character.mode != GameMode.BATTLE:
+            await ctx.send("No monster to fight, try 'hunt'ing one.")
+            return
+        enemy = character.battling
+
+        damage, killed = character.fight(enemy)
+        if damage:
+            await ctx.send(f"{character.name} attacks the wild {enemy.name}, for {damage} damage!")
+        else:
+            await ctx.send(f"Ouch, {character.name} hit nothing but air. 😹😹😹")
+
+        if killed:
+            xp, gold, level_up_check = character.defeat(enemy)
+            await ctx.send(f"{character.name} defeated the dreadful {enemy.name}. Getting {xp} xp, {gold} gold.")
+            await ctx.send(f"and.. they still have {character.hp} health left.")
+            if level_up_check:
+                await ctx.send(f"{character.name} is ready to level up to level {character.level+1}. Type '.levelup' to continue.")
+            GameMode(1)
+            return
+
+        damage, killed = enemy.fight(character)
+        if damage:
+            await ctx.send(f"{enemy.name} just hit {character.name} with a whopping {damage} damage!")
+        else:
+            await ctx.send(f"A swing and a miss by the {enemy.name}")
+        character.save_to_db()
+
+        if killed:
+            character.dead()
+
+            await ctx.send(f"{character.name} was killed by {enemy.name}. GAMEOVER")
+            return
+
+        await ctx.send(f"The {enemy.name} lives on, do you fight or flee??")
+
+
+    @commands.command(name="hunt", help="Go looking for a fight")
+    async def hunt(self, ctx):
+        """command to pick out a monster to battle"""
+        character = load_character(ctx.author.id)
+
+        if character.mode != GameMode.ADVENTURE:
+            await ctx.send("Watch out, you are already in a battle!!!")
+            return
+        enemy = character.hunt()
+        GameMode(2)
+        await ctx.send(f"You have found a wild {enemy.name}. Do you '.fight' or '.flee'??")
 
     """shows the players status"""
     @commands.command(name="status", help="Get information about your character.")
@@ -201,8 +264,8 @@ class Character(Actor):
 
     """when death occurs"""
     def dead(self, player_id):
-        if self.user_id in db["characters"].keys():
-            db.pop(self.user_id)
+        if self.user_id in db.keys():
+            del db[self.user_id]
 
     """saves the character information into a json file"""
     def save_to_db(self):
