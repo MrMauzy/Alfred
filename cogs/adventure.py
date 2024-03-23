@@ -61,6 +61,22 @@ class RPG(commands.Cog):
 
     """-------------------Bot Commands-------------------"""
 
+    @commands.command(name="flee", help="Run from the fight")
+    async def flee(self, ctx):
+        character = load_character(ctx.author.id)
+        if character.mode != GameMode.BATTLE:
+            await ctx.send("No monster to flee, try 'hunt'ing one.")
+            return
+        enemy = character.battling
+        damage, killed = character.flee(enemy)
+        if killed:
+            character.dead()
+            await ctx.send(f"{character.name} died running away from {enemy.name}")
+        elif damage:
+            await ctx.send(f"{character.name} got away but took {damage} point of damage.")
+        else:
+            await ctx.send(f"{character.name} got away without a scratch from the {enemy.name}.")
+
 
     @commands.command(name="fight", help="Fight a monster")
     async def fight(self, ctx):
