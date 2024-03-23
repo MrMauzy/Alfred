@@ -15,14 +15,15 @@ db = json.load(f)
 f.close()
 
 def load_character(user_id):
-    #character = db["characters"]["user_id"] == user_id
-    return Character(**db[user_id])
+    """loads character data for the different commands listed below"""
+    return Character(**db[str(user_id)])
 
 
 def status_embed(ctx, character):
+    """Gives an embedded messages with the players stats"""
     MODE_COLOR = {
-        GameMode.BATTLE: 0xDC143C,
-        GameMode.ADVENTURE: 0x005EB8,
+        GameMode.BATTLE: 0x6A329F,
+        GameMode.ADVENTURE: 0x9BD21D,
     }
     if character.mode == GameMode.BATTLE:
         mode_text = f"Currently in a battle with the deadly {character.battling.name}"
@@ -114,10 +115,13 @@ class RPG(commands.Cog):
     """shows the players status"""
     @commands.command(name="status", help="Get information about your character.")
     async def status(self, ctx):
-        character = load_character(ctx.author.id)
+        if str(ctx.author.id) not in db:
+            await ctx.send("You do not have a character. Use '.create' to make one.")
+        else:
+            character = load_character(ctx.author.id)
 
-        embed = status_embed(ctx, character)
-        await ctx.channel.send(None, embed=embed)
+            embed = status_embed(ctx, character)
+            await ctx.channel.send(None, embed=embed)
 
 
 
@@ -129,7 +133,7 @@ class RPG(commands.Cog):
         if not name:
             name = ctx.author.name
 
-        if user_id not in db:
+        if str(user_id) not in db:
             character = Character(**{
                 "name": name,
                 "hp": 13,
@@ -169,7 +173,6 @@ class Actor:
         self.gold = gold
 
     def fight(self, other):
-        print(db)
         defense = min(other.defense, 19) #cap defense value
         chance_to_hit = random.randint(0, 20-defense)
         if chance_to_hit:
@@ -264,9 +267,12 @@ class Character(Actor):
         return True, self.level
 
     """when death occurs"""
-    def dead(self, player_id):
-        if self.user_id in db.keys():
-            del db[self.user_id]
+    def dead(self):
+        global db
+        if str(self.user_id) in db.keys():
+            del db[str(self.user_id)]
+        with open('charinfo.json', 'w') as f:
+            json.dump(db, f, indent=4)
 
     """saves the character information into a json file"""
     def save_to_db(self):
@@ -276,7 +282,9 @@ class Character(Actor):
             characterinfo["battling"] = deepcopy(vars(self.battling))
         if self.user_id in db.keys():
             del db[self.user_id]
-        db[self.user_id] = characterinfo
+        if str(self.user_id) in db.keys():
+            del db[str(self.user_id)]
+        db[str(self.user_id)] = characterinfo
         os.remove('charinfo.json')
         with open('charinfo.json', 'w') as f:
             json.dump(db, f, indent=4)
