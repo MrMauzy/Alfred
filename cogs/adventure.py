@@ -63,6 +63,10 @@ class RPG(commands.Cog):
 
     @commands.command(name="flee", help="Run from the fight")
     async def flee(self, ctx):
+        """Flee from battle from hunted creatures"""
+        if str(ctx.author.id) not in db:
+            await ctx.send(f"To flee, you must first '.create' a character.")
+            return
         character = load_character(ctx.author.id)
         if character.mode != GameMode.BATTLE:
             await ctx.send("No monster to flee, try 'hunt'ing one.")
@@ -80,6 +84,10 @@ class RPG(commands.Cog):
 
     @commands.command(name="fight", help="Fight a monster")
     async def fight(self, ctx):
+        """command to fight a hunted monster"""
+        if str(ctx.author.id) not in db:
+            await ctx.send(f"You must first '.create' a character.")
+            return
         character = load_character(ctx.author.id)
 
         if character.mode != GameMode.BATTLE:
@@ -117,9 +125,41 @@ class RPG(commands.Cog):
         await ctx.send(f"The {enemy.name} lives on, do you fight or flee??")
 
 
+    @commands.command(name="levelup", help="Pick a stat to level up to the next level - (H)P, (A)TTACK, (D)EFENSE")
+    async def levelup(self, ctx, increase):
+        character = load_character(ctx.author.id)
+        if character.mode == GameMode.BATTLE:
+            await ctx.send("You must finish this fight first.")
+            return
+        ready, xp_needed = character.level_up_check()
+        if not ready:
+            await ctx.send(f"You need {xp_needed} xp to get to level {character.level+1}")
+            return
+        if not increase:
+            await ctx.send("Please specify a stat to increase (H)P, (A)TTACK, (D)EFENSE")
+
+        increase = increase.lower()
+        if increase == "h" or increase == "hp":
+            increase = "max_hp"
+        elif increase == "a" or increase == "attack":
+            increase = "attack"
+        elif increase == "d" or increase == "defense":
+            increase = "defense"
+
+        success, new_level = character.level_up(increase)
+        if success:
+            await ctx.send(f"{character.name} has stepped up their game and reached level {new_level}.")
+            await ctx.send(f"They also gained some extra {increase}")
+        else:
+            await ctx.send(f"{character.name} has failed to level up...")
+
+
     @commands.command(name="hunt", help="Go looking for a fight")
     async def hunt(self, ctx):
         """command to pick out a monster to battle"""
+        if str(ctx.author.id) not in db:
+            await ctx.send(f"You must first '.create' a character.")
+            return
         character = load_character(ctx.author.id)
 
         if character.mode != GameMode.ADVENTURE:
@@ -169,6 +209,13 @@ class RPG(commands.Cog):
             await ctx.send(f"New level 1 character created, {name}. Welcome.")
         else:
             await ctx.send("You already have a character.")
+
+
+    @commands.command(name="restart", help="Start over with a new character")
+    async def restart(self, ctx):
+        character = load_character(ctx.author.id)
+        character.dead()
+        await ctx.send(f"{character.name} has gone to greener pastures. Use .create to try again...")
 
 
 class GameMode(enum.IntEnum):
@@ -277,6 +324,7 @@ class Character(Actor):
             return False, self.level
         self.level += 1
         setattr(self, stat, getattr(self, stat)+1)
+        self.max_hp +=(self.level*2)
         self.hp = self.max_hp
         self.save_to_db()
 
@@ -321,58 +369,58 @@ class Enemy(Actor):
         self.gold = gold
 
 
-class LadyBug(Enemy):
+class Taco(Enemy):
     min_level = 1
     def __init__(self):
-        super().__init__("🐞 Lady Bug", 2, 1, 1, 1, 1) # HP, attack, defense, XP, gold
+        super().__init__("🌮 Taco", 2, 1, 1, 2, 1) # HP, attack, defense, XP, gold
 
 
-class GiantSpider(Enemy):
+class ConfusedMonkey(Enemy):
     min_level = 1
     def __init__(self):
-        super().__init__("🕷️ Giant Spider", 3, 2, 1, 1, 2) # HP, attack, defense, XP, gold
+        super().__init__("🦧 Confused Monkey", 3, 2, 1, 2, 2) # HP, attack, defense, XP, gold
 
 
-class Bat(Enemy):
+class TacoBell(Enemy):
     min_level = 1
     def __init__(self):
-        super().__init__("🦇 Bat", 4, 2, 1, 2, 1) # HP, attack, defense, XP, gold
+        super().__init__("🚽 Taco Bell Bathroom", 4, 2, 1, 3, 1) # HP, attack, defense, XP, gold
 
 
 class Llama(Enemy):
     min_level = 2
     def __init__(self):
-        super().__init__("🦙 Evil Llama", 5, 3, 1, 2, 2) # HP, attack, defense, XP, gold
+        super().__init__("🦙 Evil Llama", 5, 3, 1, 3, 2) # HP, attack, defense, XP, gold
 
 
 class Fred(Enemy):
     min_level = 2
     def __init__(self):
-        super().__init__("🦸‍♂️ Fred", 6, 3, 2, 2, 2) # HP, attack, defense, XP, gold
+        super().__init__("🦸‍♂️ Guy who asks too many questions", 6, 3, 2, 3, 2) # HP, attack, defense, XP, gold
 
 
 class Timmy(Enemy):
     min_level = 3
     def __init__(self):
-        super().__init__("👨‍🦼 Timmy", 7, 4, 1, 3, 3) # HP, attack, defense, XP, gold
+        super().__init__("👨‍🦼 Timmy", 7, 4, 1, 4, 3) # HP, attack, defense, XP, gold
 
 
 class LanceArmstrong(Enemy):
     min_level = 3
     def __init__(self):
-        super().__init__("🚴‍♀️ Lance Armstrong", 8, 4, 2, 3, 3) # HP, attack, defense, XP, gold
+        super().__init__("🚴‍♀️ Lance Armstrong", 8, 4, 2, 4, 3) # HP, attack, defense, XP, gold
 
 
 class Vampire(Enemy):
     min_level = 4
     def __init__(self):
-        super().__init__("🧛‍♂️Vampire", 9, 5, 1, 4, 4) # HP, attack, defense, XP, gold
+        super().__init__("🧛‍♂️Count Chocula (except evil)", 9, 5, 1, 5, 4) # HP, attack, defense, XP, gold
 
 
 class HackerMan(Enemy):
     min_level = 5
     def __init__(self):
-        super().__init__("👨‍💻 HackerMan", 10, 6, 2, 5, 5) # HP, attack, defense, XP, gold
+        super().__init__("👨‍💻 HackerMan", 10, 6, 2, 6, 5) # HP, attack, defense, XP, gold
 
 
 async def setup(bot):
